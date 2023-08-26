@@ -1,8 +1,51 @@
-import React from "react";
-import { character, episodes } from "../../data/data";
+import React, { useEffect, useState } from "react";
 import { ArrowUpCircleIcon } from "@heroicons/react/24/outline";
+import axios from "axios";
+import Loader from "./Loader";
+import { toast } from "react-hot-toast";
 
-function CharacterDetail() {
+function CharacterDetail({ selectedId, onAddFavorites, isAddToFavorites }) {
+  const [character, setCharacter] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [episodes, setEpisodes] = useState([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setIsLoading(true);
+        const { data } = await axios.get(
+          `https://rickandmortyapi.com/api/character/${selectedId}`
+        );
+        setCharacter(data);
+
+        const episodesId = data.episode.map((e) => e.split("/").at(-1)); // [1, 2, 3]
+        const { data: episodeData } = await axios.get(
+          `https://rickandmortyapi.com/api/episode/${episodesId}`
+        );
+        // console.log(episodeData)
+        setEpisodes([episodeData].flat().slice(0, 6));
+      } catch (error) {
+        toast.error(error.response.data.error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (selectedId) fetchData();
+  }, [selectedId]);
+
+  if (isLoading)
+    return (
+      <div style={{ flex: "1" }}>
+        <Loader />
+      </div>
+    );
+  if (!character || !selectedId)
+    return (
+      <div style={{ flex: 1, color: "var(--slate-300)" }}>
+        Please select a Character
+      </div>
+    );
   return (
     <div style={{ flex: 1 }}>
       <div className="character-detail">
@@ -30,7 +73,16 @@ function CharacterDetail() {
             <p>{character.location.name}</p>
           </div>
           <div className="actions">
-            <button className="btn btn--primary">Add to Favorite</button>
+            {isAddToFavorites ? (
+              <p>Already Added To Favorites ✅</p>
+            ) : (
+              <button
+                className="btn btn--primary"
+                onClick={() => onAddFavorites(character)}
+              >
+                Add to Favorite
+              </button>
+            )}
           </div>
         </div>
       </div>
